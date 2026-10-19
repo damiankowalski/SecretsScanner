@@ -1,0 +1,6 @@
+# Scan exports (SecretScan_*.csv) contain full secret values: no CSV file belongs in this repository
+*.csv
+
+# Local regression tests: the test cases contain fake secrets on purpose
+Tests/
+test-result.txt
