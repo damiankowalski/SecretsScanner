@@ -14,6 +14,7 @@ Secret Scanner is a read-only PowerShell tool with a graphical window. It search
 - **Read-only.** It never changes, moves, deletes or uploads any file.
 - **Interactive.** It opens a window, so it needs a logged-on desktop session. It is not meant to run unattended as SYSTEM through Intune or SCCM.
 - **Fast on large folders.** Files are scanned in parallel while the folder tree is still being discovered, and memory use stays flat even for very large files.
+![Secret Scanner window](docs/screenshot.png)
 
 ## Requirements
 
