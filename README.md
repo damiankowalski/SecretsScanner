@@ -1,6 +1,6 @@
 # Secret Scanner (`Find-Secrets.ps1`)
 
-**Version 1.3.1** (2026-10-19)
+**Version 1.4.0** (2026-10-22)
 
 Secret Scanner is a read-only PowerShell tool with a graphical window. It searches an application folder and all its subfolders for hardcoded passwords, API keys, tokens, certificates, connection strings, service account credentials and sensitive business data, and lists every finding with the file and the matching text as proof.
 
@@ -14,6 +14,7 @@ Secret Scanner is a read-only PowerShell tool with a graphical window. It search
 - **Read-only.** It never changes, moves, deletes or uploads any file.
 - **Interactive.** It opens a window, so it needs a logged-on desktop session. It is not meant to run unattended as SYSTEM through Intune or SCCM.
 - **Fast on large folders.** Files are scanned in parallel while the folder tree is still being discovered, and memory use stays flat even for very large files.
+
 ![Secret Scanner window](docs/screenshot.png)
 
 ## Requirements
@@ -27,10 +28,10 @@ Secret Scanner is a read-only PowerShell tool with a graphical window. It search
 
 ## Download
 
-Download only `Find-Secrets.ps1`, either from this page (open the file, then **Download raw file**) or with PowerShell:
+Download `Find-Secrets.ps1` from the [latest release](https://github.com/damiankowalski/SecretsScanner/releases/latest), or with PowerShell:
 
 ```powershell
-Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/damiankowalski/SecretsScanner/main/Find-Secrets.ps1' -OutFile .\Find-Secrets.ps1
+Invoke-WebRequest -Uri 'https://github.com/damiankowalski/SecretsScanner/releases/latest/download/Find-Secrets.ps1' -OutFile .\Find-Secrets.ps1
 ```
 
 You can also clone the repository:
@@ -46,7 +47,8 @@ git clone https://github.com/damiankowalski/SecretsScanner.git
    ```powershell
    powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Find-Secrets.ps1
    ```
-3. The scan starts as soon as the window opens. Findings appear in the list while it runs.
+3. The scan of the script's folder starts as soon as the window opens. Findings appear in the list while it runs.
+   To check another folder, paste its path into the path field at the top of the window and press **Enter** or **Scan again**.
 4. Review the findings, filter them, copy them or export them to CSV.
 
 If Windows refuses to run the file because it was downloaded from the internet, unblock it once:
@@ -59,7 +61,7 @@ Unblock-File .\Find-Secrets.ps1
 
 | Parameter | Default | Description |
 |---|---|---|
-| `-Path` | The folder that contains the script | Folder to scan, including all subfolders |
+| `-Path` | The folder that contains the script | Folder scanned when the window opens, including all subfolders. You can scan other folders later from the path field in the window. |
 | `-MaxFileSizeMB` | `200` | Files larger than this are skipped (allowed range 1 to 4096) |
 | `-Threads` | Number of CPU cores, between 2 and 12 | Number of parallel scan workers. `0` means automatic; the maximum is 64. |
 
@@ -79,6 +81,20 @@ Built-in help is available with `Get-Help .\Find-Secrets.ps1 -Full`.
 ---
 
 ## Using the window
+
+### Folder to scan
+
+The path field at the top shows the folder being scanned. When the window opens, it contains the script's folder (or the `-Path` value) and that folder is scanned straight away.
+
+To scan another folder, paste or type its path into the field and press **Enter** or **Scan again**:
+
+- Quotes are removed, so a path copied with Explorer's **Copy as path** works as it is.
+- Environment variables are expanded, for example `%ProgramFiles%\Contoso`.
+- A relative path is resolved from the folder PowerShell was started in.
+- **Esc** puts back the last scanned folder.
+- While a scan runs, the field is locked. Press **Stop scan** first to change it.
+
+If the path does not exist, points to a file, or is not a file system folder (for example a registry path), the scan does not start. The reason is shown above the progress bar, and the previous results stay on screen.
 
 ### Summary tiles
 
@@ -127,7 +143,7 @@ When the scan finishes, results are sorted by file, finding and position. Click 
 | Copy rows | Select rows, then press **Copy selected** or **Ctrl+C**. Rows are copied tab-separated (File, Finding, Location, Proof) and paste straight into Excel. |
 | Open file location | Double-click a row, press **Enter**, or press **Open file location**. Explorer opens with the file selected. |
 | Export to CSV | Saves the rows currently shown, so an active filter applies |
-| Stop or rescan | **Stop scan** while running, **Scan again** when finished |
+| Stop or rescan | **Stop scan** while running. **Scan again** (or **Enter** in the path field) scans the folder in the path field. |
 
 The CSV export has the columns File, Finding, Location and Proof. It uses the list separator from the Windows regional settings (a semicolon with Polish settings) and is saved as UTF-8 with BOM, so Excel shows accented characters correctly. The default file name is `SecretScan_<folder>_<yyyyMMdd_HHmm>.csv`, saved in Documents.
 
@@ -361,9 +377,16 @@ The script uses semantic versioning, `MAJOR.MINOR.PATCH`:
 - **MINOR:** new rules, new file types or new features.
 - **PATCH:** fixes, including false-positive fixes.
 
-The version is shown in the window header and title bar. When releasing a new version, update all three places: `$ScriptVersion` near the top of the script, the `.NOTES` section of its built-in help, and this file. Each release is also tagged in Git as `v<version>`, for example `v1.3.1`.
+The version is shown in the window header and title bar. When releasing a new version, update all three places: `$ScriptVersion` near the top of the script, the `.NOTES` section of its built-in help, and this file. Each release is tagged in Git as `v<version>`, for example `v1.4.0`, and published on the Releases page with the script attached.
 
 ## Version history
+
+### 1.4.0 (2026-10-22)
+- New editable path field at the top of the window. The script still scans its own folder (or `-Path`) when it opens. Any other folder can then be scanned by pasting its path and pressing **Enter** or **Scan again**.
+- Pasted paths are cleaned up: quotes from Explorer's **Copy as path** are removed and environment variables are expanded. Paths that do not exist, files and non-file-system paths are rejected with a message.
+- The **Scan again** button moved next to the path field. The window title follows the folder being scanned.
+- Removed an outdated reference to test files from the script's built-in help.
+- The scan engine and detection rules are unchanged.
 
 ### 1.3.1 (2026-10-19)
 - Fixed: e-mail addresses in license and attribution files (`ThirdPartyNotices.txt`, `LICENSE*.txt`, `NOTICE*.txt`, `AUTHORS*.txt`…) are no longer reported as personal data. All other rules still scan these files. New `$LicenseFilePattern` setting.

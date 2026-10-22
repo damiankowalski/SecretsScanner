@@ -32,7 +32,8 @@
     The script only reads files. It never changes, moves or sends anything.
 
 .PARAMETER Path
-    Folder to scan. Defaults to the folder that contains this script.
+    Folder scanned when the window opens. Defaults to the folder that contains this script. Another folder can
+    be scanned later by pasting its path into the path field in the window.
 
 .PARAMETER MaxFileSizeMB
     Files larger than this are skipped (default 200). Sensitive file types are still reported by name.
@@ -47,8 +48,7 @@
     .\Find-Secrets.ps1 -Path 'D:\Apps\Contoso' -MaxFileSizeMB 500
 
 .NOTES
-    Version 1.3.1 (2026-10-19). Version history: see README.md.
-    Regression tests: Tests\Test-FindSecrets.ps1 (see README.md).
+    Version 1.4.0 (2026-10-22). Version history: see README.md.
     Windows PowerShell 5.1 or PowerShell 7 on Windows.
     The Proof column and the CSV export contain full secret values. Treat an export like any credential file.
 #>
@@ -59,7 +59,7 @@ param(
     [ValidateRange(0, 64)][int]$Threads = 0
 )
 
-$ScriptVersion = '1.3.1'   # MAJOR.MINOR.PATCH - update together with .NOTES and README.md
+$ScriptVersion = '1.4.0'   # MAJOR.MINOR.PATCH - update together with .NOTES and README.md
 
 # WPF needs a single-threaded apartment. Both PowerShell editions default to STA; restart if launched in MTA.
 if ([Threading.Thread]::CurrentThread.GetApartmentState() -ne [Threading.ApartmentState]::STA) {
@@ -792,6 +792,7 @@ $Xaml = @'
             <ControlTemplate.Triggers>
               <Trigger Property="Text" Value=""><Setter TargetName="Hint" Property="Visibility" Value="Visible"/></Trigger>
               <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Bd" Property="BorderBrush" Value="#5AA9F0"/></Trigger>
+              <Trigger Property="IsReadOnly" Value="True"><Setter Property="Foreground" Value="#8C94A3"/></Trigger>
             </ControlTemplate.Triggers>
           </ControlTemplate>
         </Setter.Value>
@@ -975,34 +976,35 @@ $Xaml = @'
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="Auto"/>
       <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
       <RowDefinition Height="*"/>
       <RowDefinition Height="Auto"/>
     </Grid.RowDefinitions>
 
     <!-- Header -->
-    <Grid Grid.Row="0" Margin="0,0,0,16">
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="Auto"/>
-        <ColumnDefinition Width="*"/>
-        <ColumnDefinition Width="Auto"/>
-      </Grid.ColumnDefinitions>
+    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,14">
       <Viewbox Width="34" Height="34" VerticalAlignment="Center">
         <Grid Width="24" Height="24">
           <Path Fill="#5AA9F0" Data="M12,1 L21,4.8 V11 C21,16.6 17.2,21.4 12,23 C6.8,21.4 3,16.6 3,11 V4.8 Z"/>
           <Path Fill="#1B1F27" Data="M13,11.6 A2.4,2.4 0 1 0 11,11.6 L10.4,15.6 H13.6 Z"/>
         </Grid>
       </Viewbox>
-      <StackPanel Grid.Column="1" Margin="14,0,16,0" VerticalAlignment="Center">
-        <TextBlock FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="21" FontWeight="SemiBold"><Run Text="Secret Scanner"/><Run x:Name="TxtVersion" FontSize="13" FontWeight="Normal" Foreground="#8C94A3"/></TextBlock>
-        <TextBlock x:Name="TxtRoot" Foreground="#8C94A3" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"
-                   ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
-      </StackPanel>
-      <Button x:Name="BtnAction" Grid.Column="2" Style="{StaticResource PrimaryButton}" Content="Stop scan"
-              MinWidth="120" VerticalAlignment="Center"/>
+      <TextBlock Margin="14,0,0,0" VerticalAlignment="Center" FontFamily="Segoe UI Variable Display, Segoe UI" FontSize="21" FontWeight="SemiBold"><Run Text="Secret Scanner"/><Run x:Name="TxtVersion" FontSize="13" FontWeight="Normal" Foreground="#8C94A3"/></TextBlock>
+    </StackPanel>
+
+    <!-- Folder to scan -->
+    <Grid Grid.Row="1" Margin="0,0,0,12">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+      <TextBox x:Name="PathBox" Style="{StaticResource SearchBox}" Tag="Folder to scan: paste a path and press Enter"
+               ToolTip="Folder to scan. Paste or type a path, then press Enter or Scan again. Esc restores the last scanned folder."/>
+      <Button x:Name="BtnAction" Grid.Column="1" Style="{StaticResource PrimaryButton}" Content="Stop scan" MinWidth="120"/>
     </Grid>
 
     <!-- Summary -->
-    <UniformGrid Grid.Row="1" Rows="1" Columns="5" Margin="0,0,0,12">
+    <UniformGrid Grid.Row="2" Rows="1" Columns="5" Margin="0,0,0,12">
       <Border Style="{StaticResource Tile}" Margin="0,0,8,0">
         <StackPanel>
           <TextBlock Text="Files found" Style="{StaticResource TileLabel}"/>
@@ -1036,7 +1038,7 @@ $Xaml = @'
     </UniformGrid>
 
     <!-- Progress -->
-    <Border Grid.Row="2" Style="{StaticResource Tile}" Margin="0,0,0,12" Padding="16,12,16,12">
+    <Border Grid.Row="3" Style="{StaticResource Tile}" Margin="0,0,0,12" Padding="16,12,16,12">
       <StackPanel>
         <Grid>
           <TextBlock x:Name="TxtStatus" Text="Starting" FontWeight="SemiBold" Margin="0,0,60,0" TextTrimming="CharacterEllipsis"/>
@@ -1048,7 +1050,7 @@ $Xaml = @'
     </Border>
 
     <!-- Toolbar -->
-    <Grid Grid.Row="3" Margin="0,0,0,10">
+    <Grid Grid.Row="4" Margin="0,0,0,10">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="*"/>
         <ColumnDefinition Width="Auto"/>
@@ -1063,7 +1065,7 @@ $Xaml = @'
     </Grid>
 
     <!-- Results -->
-    <Border Grid.Row="4" Background="#1F232C" BorderBrush="#2E3441" BorderThickness="1" CornerRadius="6" Padding="1">
+    <Border Grid.Row="5" Background="#1F232C" BorderBrush="#2E3441" BorderThickness="1" CornerRadius="6" Padding="1">
       <Grid>
         <DataGrid x:Name="ResultsGrid" AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Extended"
                   SelectionUnit="FullRow" HeadersVisibility="Column" GridLinesVisibility="Horizontal"
@@ -1092,7 +1094,7 @@ $Xaml = @'
     </Border>
 
     <!-- Footer -->
-    <Grid Grid.Row="5" Margin="2,10,2,0">
+    <Grid Grid.Row="6" Margin="2,10,2,0">
       <TextBlock x:Name="TxtFooter" Foreground="#8C94A3" FontSize="12"
                  Text="Double-click a row to open its folder. Ctrl+C copies the selected rows."/>
       <TextBlock x:Name="TxtCount" HorizontalAlignment="Right" Foreground="#8C94A3" FontSize="12"/>
@@ -1118,7 +1120,7 @@ public static extern int DwmSetWindowAttribute(System.IntPtr hwnd, int attribute
 
 $window = [Windows.Markup.XamlReader]::Parse($Xaml)
 $ui = @{}
-foreach ($name in 'TxtRoot', 'TxtVersion', 'BtnAction', 'TxtFound', 'TxtScanned', 'TxtData', 'TxtFindings', 'TxtFindingFiles',
+foreach ($name in 'PathBox', 'TxtVersion', 'BtnAction', 'TxtFound', 'TxtScanned', 'TxtData', 'TxtFindings', 'TxtFindingFiles',
                   'TxtElapsed', 'TxtStatus', 'TxtPercent', 'Progress', 'TxtCurrent', 'FilterBox', 'BtnCopy',
                   'BtnOpen', 'BtnExport', 'ResultsGrid', 'TxtEmpty', 'TxtFooter', 'TxtCount') {
     $ui[$name] = $window.FindName($name)
@@ -1195,6 +1197,41 @@ function Show-FooterMessage([string]$Text) {
     $ui.TxtFooter.Text = $Text
 }
 
+# Turns what the user typed or pasted into a full folder path. Quotes from Explorer's "Copy as path" are
+# removed and environment variables such as %ProgramFiles% are expanded.
+function Resolve-ScanPath([string]$Text) {
+    $p = $Text.Trim().Trim([char]34, [char]39).Trim()
+    if (-not $p) { return @{ Error = 'Enter the folder to scan.' } }
+    $p = [Environment]::ExpandEnvironmentVariables($p)
+    try { $resolved = Resolve-Path -LiteralPath $p -ErrorAction Stop }
+    catch { return @{ Error = 'Folder not found: ' + $p } }
+    if ($resolved.Provider.Name -ne 'FileSystem') { return @{ Error = 'Not a file system folder: ' + $p } }
+    $full = $resolved.ProviderPath
+    if (-not (Test-Path -LiteralPath $full -PathType Container)) { return @{ Error = 'This is a file, not a folder: ' + $full } }
+    return @{ Path = $full }
+}
+
+function Set-ScanRoot([string]$Path) {
+    $script:Root = $Path
+    $Settings.Root = $Path
+    $ui.PathBox.Text = $Path
+    $ui.PathBox.CaretIndex = $Path.Length
+    $window.Title = 'Secret Scanner {0} - {1}' -f $ScriptVersion, $Path
+}
+
+# Scans the folder in the path field, or explains why it cannot.
+function Start-ScanFromPathBox {
+    $target = Resolve-ScanPath $ui.PathBox.Text
+    if ($target.Error) {
+        $ui.TxtStatus.Text = $target.Error
+        [void]$ui.PathBox.Focus()
+        $ui.PathBox.SelectAll()
+        return
+    }
+    Set-ScanRoot $target.Path
+    Start-Scan
+}
+
 function Start-Scan {
     $State.Files.Clear()
     Set-Results @()
@@ -1226,6 +1263,7 @@ function Start-Scan {
     $ui.TxtEmpty.Visibility = 'Collapsed'
     $ui.BtnAction.Content = 'Stop scan'
     $ui.BtnAction.IsEnabled = $true
+    $ui.PathBox.IsReadOnly = $true
     Show-FooterMessage $FooterHint
     $State.Stopwatch.Restart()
     $State.Timer.Start()
@@ -1327,6 +1365,7 @@ function Complete-Scan {
     $ui.TxtEmpty.Visibility = if ($count) { 'Collapsed' } else { 'Visible' }
     $ui.BtnAction.Content = 'Scan again'
     $ui.BtnAction.IsEnabled = $true
+    $ui.PathBox.IsReadOnly = $false
 }
 
 function Get-RowItem($Source) {
@@ -1398,8 +1437,14 @@ $ui.BtnAction.Add_Click({
         $ui.BtnAction.IsEnabled = $false
         $ui.TxtStatus.Text = 'Stopping' + $Ellipsis
     } else {
-        Start-Scan
+        Start-ScanFromPathBox
     }
+})
+$ui.PathBox.Add_KeyDown({
+    param($s, $e)
+    if ($State.Timer.IsEnabled) { return }
+    if ($e.Key -eq 'Enter') { Start-ScanFromPathBox; $e.Handled = $true }
+    elseif ($e.Key -eq 'Escape') { $ui.PathBox.Text = $Root; $ui.PathBox.CaretIndex = $Root.Length; $e.Handled = $true }
 })
 $ui.BtnCopy.Add_Click({ Copy-Selected })
 $ui.BtnOpen.Add_Click({ Open-Location $ui.ResultsGrid.SelectedItem })
@@ -1442,9 +1487,8 @@ $window.Add_Closing({
     if ($State.Sync) { $State.Sync.Cancel = $true }
 })
 
-$ui.TxtRoot.Text = $Root
 $ui.TxtVersion.Text = '   v' + $ScriptVersion
-$window.Title = 'Secret Scanner {0} - {1}' -f $ScriptVersion, $Root
+Set-ScanRoot $Root
 Set-Results @()
 [void]$window.ShowDialog()
 
